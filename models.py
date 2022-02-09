@@ -43,10 +43,11 @@ class BasicLSTM(nn.Module):
     
     
 class ModelTrainer(nn.Module):
-    def __init__(self, model):
+    def __init__(self, model, return_attention=True):
         super().__init__()
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         self.model = model.to(self.device)
+        self.return_attention = return_attention
         self.criterion = nn.MSELoss()
         self.optimizer = None
         self.sceduler = None
@@ -86,7 +87,10 @@ class ModelTrainer(nn.Module):
         X = X.to(self.device)
         y = y.to(self.device)
         target = target.to(self.device)
-        output, x_attention, _ = self.forward(X, y)
+        if self.return_attention:
+            output, _, _ = self.forward(X, y)
+        else:
+            output = self.forward(X, y)
         loss = self.criterion(output, target)
 
         self.log('train_step_loss', loss.item())
@@ -99,7 +103,10 @@ class ModelTrainer(nn.Module):
         X = X.to(self.device)
         y = y.to(self.device)
         target = target.to(self.device)
-        output, _, _ = self.forward(X, y)
+        if self.return_attention:
+            output, _, _ = self.forward(X, y)
+        else:
+            output = self.forward(X, y)
         loss = self.criterion(output, target)
         
         self.log('valid_step_loss', loss.item())
@@ -110,8 +117,12 @@ class ModelTrainer(nn.Module):
         X, y, _ = batch
         X = X.to(self.device)
         y = y.to(self.device)
-        output, x_attention, t_attention = self.forward(X, y)
-        return output.to('cpu'), x_attention.to('cpu'), t_attention.to('cpu')
+        if self.return_attention:
+            output, x_attention, t_attention = self.forward(X, y)
+            return output.to('cpu'), x_attention.to('cpu'), t_attention.to('cpu')
+        else:
+            output = self.forward(X, y)
+            return output.to('cpu')
     
     def fit(self, train_loader, val_loader, epochs=10, verbose=True, stopper=None):
         if verbose: tqdm_ = tqdm
@@ -154,19 +165,29 @@ class ModelTrainer(nn.Module):
             if verbose: print('-'*80)
 
     def predict(self, data_loader):
-        pred = None
-        x_attentions = []
-        t_attentions = []
-        self.eval()
-        for batch in tqdm(data_loader):
-            output, x_attention, t_attention = self.prediction_step(batch)
-            #pred = np.concatenate((pred, output.detach().numpy()), 0)
-            if pred is not None:
-                pred = np.concatenate((pred, output.detach().numpy()))
-            else: pred = output.detach().numpy()
-            x_attentions.append(x_attention.detach())
-            t_attentions.append(t_attention.detach())
-        return pred, torch.cat(x_attentions, dim=0).numpy(), torch.cat(t_attentions, dim=0).numpy()
+        if self.return_attention:
+            pred = None
+            x_attentions = []
+            t_attentions = []
+            self.eval()
+            for batch in tqdm(data_loader):
+                output, x_attention, t_attention = self.prediction_step(batch)
+                #pred = np.concatenate((pred, output.detach().numpy()), 0)
+                if pred is not None:
+                    pred = np.concatenate((pred, output.detach().numpy()))
+                else: pred = output.detach().numpy()
+                x_attentions.append(x_attention.detach())
+                t_attentions.append(t_attention.detach())
+            return pred, torch.cat(x_attentions, dim=0).numpy(), torch.cat(t_attentions, dim=0).numpy()
+        else:
+            pred = None
+            self.eval()
+            for batch in tqdm(data_loader):
+                output = self.prediction_step(batch)
+                if pred is not None:
+                    pred = np.concatenate((pred, output.detach().numpy()))
+                else: pred = output.detach().numpy()
+            return pred
 
     def plot_loss(self):
         fig, ax1 = plt.subplots()
