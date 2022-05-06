@@ -3,6 +3,10 @@ __pycache__
 venv
 articles
 nis
+lightning_logs
+logs
+data/dump
+data/Monash
 
 *.aux
 *.glo

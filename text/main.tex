@@ -1,0 +1,186 @@
+\documentclass{elsarticle}
+\usepackage[utf8]{inputenc}
+\usepackage[english]{babel}
+\usepackage{csquotes}
+\usepackage{lipsum}
+
+%\usepackage{tocloft}
+%\renewcommand{\cftsecleader}{\cftdotfill{\cftdotsep}}
+
+\setlength{\parindent}{0.5in}
+
+\usepackage{hyperref}
+\hypersetup{
+	colorlinks=true,
+	linkcolor=black,
+	citecolor=black,
+	urlcolor=cyan
+}
+
+\usepackage{enumitem}
+\setlist{noitemsep}
+
+%\usepackage{geometry}
+%\geometry{
+%	top=25mm,
+%	bottom=25mm,
+%	left=25mm,
+%	right=25mm
+%}
+
+\usepackage[style=apa, doi=true, backend=biber, natbib]{biblatex}
+\addbibresource{ref.bib}
+\AtEveryBibitem{
+	\clearfield{url}
+	\clearfield{urldate}
+	\clearfield{note}
+	\clearfield{annote}
+}
+
+%\title{}
+%\shorttitle{}
+
+
+\begin{document}
+
+%\input{title.tex}
+
+\tableofcontents
+\clearpage
+
+\section{Abstract}
+
+This purpose of this study is to investigate the relationship between a list of macroeconomic variables and quality with which Deep Learning can predict Russian stock market. The connection between commodity prices, exchange rates, inflation, and foreign markets is a well-established area of economic and econometric research. On the other hand, in the prediction field, while modern Deep Learning methods are becoming more and more popular for financial time series forecasting, those fundamental economic factors are rarely utilized.
+Using daily data on several Russian publicly traded companies in the period of 2011-2019, I plan to determine if the mentioned factors are suitable as inputs for LSTM model, improving its performance compared to baselines and ARIMA in terms of RMSE.
+
+\section{Introduction}
+
+% Intro?
+
+In recent years, the surge in the power of Machine Learning, and especially Deep Learning, has lead to dramatic advancements in computer vision, natural language processing, and various other tasks, including time series forecasting, and, in particular, financial time series forecasting \citep{lara-benitez_experimental_2021}.
+However, this stream of literature is inherently technical.
+Machine Learning specialists view financial data merely as one of time series domains, alongside fields like energy consumption, weather forecasting or turnout rates.
+Their works, while contributing to minimizing prediction error, use little knowledge of economics or finance to provide any meaningful insights of the way financial markets work of behave.
+The series considered are either univariate, use standard High-Low-Open-Close data on stocks, or other ML-suitable data like tweets or news articles \citep{sezer_financial_2019}.
+Macroeconomic factors such as exchange rates or oil prices can hardly be found.
+
+On the other hand, economists searching for causality between stock markets and fundamental factors based on theoretical insights is a different stream of literature. Connections of stock markets with oil prices, exchange rates, inflation and foreign markets have been documented for countries around the world \citep{verma_impact_2021}. However, these works use different, statistical toolkit, consisting of mostly linear and ARCH methods. In terms of pure prediction power, Machine Learning methods like Random Forest or SVM are proved to produce better results than linear Box-Jenkins approaches \citep{kumar_forecasting_2006}. Deep learning approaches like LSTM outperform them as well \citep{siami-namini_forecasting_2018}.
+
+% Russia?
+
+My aim therefore is to test applicability of macroeconomic data for the task of forecasting Russian stock prices time series. Compared to univariate setting, do factors like oil prices, exchange rates or foreign market indexes improve predictions produces by Deep Learning algorithms?
+
+It is not a classic econometric study, as improving prediction does not imply causality. However, improving prediction would mean there is certainly some relevant information, which powerful ML methods are able to retrieve and utilize.
+
+The rest of this proposal is organized as follows. Relevant literature is reviewed in the next section. Methodology section explains data acquisition procedure, training pipeline, optimization algorithms, proposes the list of models, and sketches variable selection approach. Then I speculate on possible results, and, finally, conclude the proposal with limitations of the study.
+
+\section{Literature Review}
+
+Among the most studied relationships of external variables with stock prices are oil prices, exchange rates and inflation. They make up a significant branch of financial econometric literature.
+
+The link between oil prices and economic activity, and, hence, stock prices can be considered common knowledge. There are various theoretical explanations for this relationship \citep{degiannakis_oil_2018}.
+Firstly, oil prices directly affect future cash flows of oil-producer and oil-consumer firms, which get evaluated in their stock price. Therefore, oil-producer stocks move in the same direction as oil price as it affects their profits, while oil-consumers experience a rise or reduction in their costs which should drive their stock's price to the opposite direction \citep{basher_oil_2006, filis_dynamic_2011}.
+Secondly, oil prices affect basic macroeconomic variables such as output and inflation, which in turn have their effect on the whole financial market.
+Finally, fluctuations in oil price increase uncertainty \citep{brown_energy_2002}.
+
+As for empirical proofs, the situation in unclear.
+For example, \citet{basher_oil_2012} and \citet{filis_macro_2010} find negative relationship, \citet{narayan_modelling_2010} document positive effect, and studies like \citet{silvapulle_nonparametric_2017} or \citet{zhu_modelling_2014} report no effect at all.
+Moreover, it is apparent that different countries exhibit different effects from oil prices. The studies of \citet{mohanty_oil_2011} and \citet{wang_oil_2013} show that for oil-exporting countries the effect of oil price change is positive, and the opposite is true for oil-importing countries.
+The same can be said about different sectors. Energy-supplying sectors have been found to be affected positively by oil prices, while energy-consumers such as Buildings, Manufacturing, Transport, Food, Chemical, Medical, Computer and other sectors are more likely to suffer from them \citep{narayan_new_2011, elyasiani_oil_2011}.
+
+Another factor considered to be affecting stock prices is exchange rate. Economic reasoning is the following. Similar to oil prices, exchange rates affect future cash flows of exporting and importing firms \citep{bahmani-oskooee_relation_2015}. Depreciation of domestic currency benefits exporters, increasing their profits, and hurts importers, increasing their costs, and, through this, affects their stock prices. However, the reverse link is known as well: as the rise (or fall) in stock prices indicates rise (or fall) in their holders' wealth, it also affects demand for imports, driving exchange rate up (or down).
+
+Empirical evidence here is even more ambiguous than for oil prices.
+A number of studies document existence of relationship only for a subsample of studies countries \citep[][among many others]{inci_dynamic_2014, chen_untangling_2012}.
+The direction and existence of causality also depends on market condition, flowing from  stock prices to exchange rates in crisis and from exchange rates to stock prices otherwise \citep{kollias_nexus_2012, tsagkanos_long-run_2013}.
+
+There is also evidence of inflation \citep{anari_stock_2001, eldomiaty_associations_2019}, interest rates \citep{hashemzadeh_stock_1988}, real output \citep{durai_stock_2009, zhao_stock_1999}, commodity prices other than oil \citep{raza_asymmetric_2016, sadorsky_modeling_2014} and many other factors influencing stock market causally.
+
+As for the case of Russia, there are studies examining causal determinants of Russian stock market. \citet{kordonis_stock_2016} consider the period between 1997 and 2012 and oil prices and eastern European stock markets performance as variables to affect stock market in Russia. According to their findings, oil prices stopped being significant after 2006, while correlation with other markets increased in that period. \citet{robert_d_gay_effect_2008} studies several emerging economies' markets, including Brazil, India, China and Russia in the period of 1999-2006. They report a not significant result for both oil prices and exchange rates and all four countries. \citet{lozinskaia_fundamental_2019} study the impact of oil prices, exchange rates, foreign stock indexes and interest rates on Russian stock market from 2003 to 2018. The authors document a varying relationship, with variations caused by structural breaks. This list of studies is by no means inclusive.
+
+Econometric models employed by authors in most of mentioned articles are either some variations of GARCH (generalized autoregressive conditional heteroskedasticity) model or VAR, a multivariate generalization of ARIMA (autoregressive integrated moving average) model. While being suitable for causality determination, in terms of predictive power, those are by far not the state of the art at the moment \citep{siami-namini_forecasting_2018}. It is apparent that for as complex entity as stock market prices or returns <<simple>> linear or ARCH models do not suffice.
+
+Deep Learning has gained popularity with remarkable increase of its power, complexity and number of possible applications. Financial time series is no exception. An increasing number of articles are being published by ML specialists, introducing new models and approaches. I will cover the basic and most popular architectures.
+
+The basic deep learning architecture is Artificial Neural Network \citep{sezer_financial_2019}. It is, broadly speaking, a combination of parametric matrix multiplications with non-linear activation function applied to each of them, stacked together. For each vector of variables (in time series context, lags of the variable of interest) a single value $y_{t+1}$ is produced. Then, it is compared with the true future value using a loss function. Because loss functions and all layer operations are differentiable with respect to parameters, gradients can be calculated, and the parameters get updated in the direction of minimizing the loss, with a procedure called backpropagation. After sufficient number of iterations, the model <<learns>> the best parameters.
+
+The simple ANN model, however, is somewhat equivalent to running a linear regression on lagged time series data: it does not account for time dependence and autocorrelation \citep{torres_deep_2021}. For this purpose, Recurrent Neural Networks were introduced, first in the field of Natural Language Processing \citep{hewamalage_recurrent_2021}. An RNN is made of a single <<cell>> (still a combination of parametric matrix multiplication, concatenation and nonlinear functions) rolling over instances of a time-dependent data. In this architecture an input is a sequence of some predefined length, and the model gets applied to every sequence in the data in a rolling window manner.
+
+There are several types of RNN cells, each carefully designed by ML researches to better accomplish prediction tasks. The most widely used is called LSTM, Long Short-Term Memory \citep{greff_lstm_2017}.
+Initially designed to deal with the vanishing gradient problem, LSTM can also utilize both short- and long-term temporal dependence by receiving previous step state as input, which makes it very good for time series tasks with autocorrelation of higher orders.
+
+Most of papers in this field employ DL architectures in single-stock forecasting task. A number of basic variables like Open, Close prices, Volume and Volatility of a stock or a stock index are fed into a neural network of some new design, then the results are compared to previously developed models and baselines. % (for example, x, y, z).
+Some of the authors use technical indicators \citep[e.g.][]{nelson_stock_2017, chen_lstm-based_2015}. % include other OR reviews because there is as ton of them
+There is a stream of literature incorporating complex information like tweets, news or Google trends into forecasting framework, using different specific NN architectures for processing that data \citep{huang_using_2020, kordonis_stock_2016, hu_predicting_2018}. Some just use a very large number of stocks at the same time for training \citep{li_stock_2018}.
+
+However, meaningful external macroeconomic factors are rarely used.
+The closest work in some sense is by \citet{chen_constructing_2021}. The authors test, whether information on gold and oil prices is suitable for predicting future stock movement (a classification task, contrary to regression task of predicting the future value), using a Convolution Neural Network (CNN). They conclude that this external information enhance forecasts for firms from semiconductor, petroleum, and automotive industries, while not affecting apparel, fast food, and copy processing industries.
+I plan a somewhat similar approach.
+
+\section{Methodology}
+
+The task of this proposed study is multivariate time series forecasting, i.e. predicting next day's stock price using a sequence of previous price values as well as different <<explanatory>> variables.
+
+Daily data on Russian stocks will be collected from open sources, for example, \url{finam.ru}. Period of observation is preliminarily decided to be from 2011 to 2019 years: data on earlier dates is inaccessible, and later dates exhibit COVID-19 structural shock, likely changing the pattern of connections in data, so it would be unfair to test the model on these new conditions.
+Several Russian publicly traded companies from different sectors will be selected to preform the forecasts.
+
+The following fundamental macroeconomic factors are going to be considered. These variables are freely available in open sources as well.
+
+\begin{itemize}
+	\item Oil, gas, gold prices
+	\item Dollar and Euro exchange rates
+	\item Interest rates on government bonds
+	\item NASDAQ, NYSE, London exchange, etc. indexes
+\end{itemize}
+
+Following the standard machine learning procedure, the data will be sequentially split into training, validation and testing samples. The training sample will be used to optimize model's parameters using gradient methods; validation period will be used to tune the model's hyperparameters, i.e. chose the external, non-optimizable parameters which give the best performance on this validation sample; testing data is for final evaluation and comparison between different models.
+
+The criterion is Root Mean Squared Error (RMSE) metric, squared deviation of predicted value from the actual one.
+
+\begin{equation}
+RMSE = \sqrt{\sum_{i=1}^{n} \frac{(\hat{y}_i - y_i)^2}{n}}
+\end{equation}
+
+Performance of various models is going to be compared to determine if the most advanced Deep learning models do indeed provide better results. The list of models and baselines currently considered is the following:
+
+\begin{itemize}
+	\item Linear models
+	\begin{itemize}
+		\item ARIMA
+	\end{itemize}
+
+	\item Deep Learning models
+	\begin{itemize}
+		\item ANN
+		\item LSTM
+	\end{itemize}
+
+	\item Baselines
+	\begin{itemize}
+		\item rolling mean
+		\item previous value
+	\end{itemize}
+\end{itemize}
+
+To analyze variable importance, each group of variables is going to be iteratively excluded from training sample, to compare resulting prediction qualities. If model performance with the factor included is statistically better across multiple trials, the factor will be considered important in a sense of bearing useful information which the model is able to extract.
+
+The work will be conducted in Python, using PyTorch, sklearn packages, and likely many others \citep{van_rossum_python_2009, pedregosa_scikit-learn_2011, paszke_pytorch_2019}.
+
+\section{Anticipated Results}
+
+The result of the study, firstly, is a choice of a best-performing model, in terms of RMSE. It is likely going to be LSTM or some variation of it, though it is not certain, hence the application of other models for comparison is planned. Researches have established that Neural Network approaches generally achieve higher quality predictions compared to linear models like ARIMA \citep{siami-namini_comparison_2018}. However, sometimes it does not hold for various reasons, like the choice of hyperparameters, suboptimal training procedure or the nature of the data. As training and testing the models on Russian stock has not been done previously, this study can provide an additional example of successful or unsuccessful application of DL in finance.
+
+The other planned result is an interpretation of importance of suggested variables. In principle, the hypothesis for all of them is that they do bear significant information about stock market, and therefore must increase prediction quality. As reviewed literature suggest, most of the factors even have direct causal connection with the variable of interest. However, this does not imply that the variables will be important in this paper's setting. Determining it can motivate researches to use them in their works.
+
+\section{Conclusion}
+
+In the proposed study I plan to assess whether a list of different macroeconomic variables can increase quality of predictions on Russian stock market using Deep Learning models. As literature suggests, variables like oil prices, exchange rates, interest rates, foreign market indexes, and others can causally interact with stock prices of Russian companies. However, most of the variables have never been used outside of standard econometric pipelines, and modern Deep Learning models have not been exposed to that kind of information.
+
+Therefore, training DL models on daily time series of Russian stock prices together with supplementary fundamental economic factors, this study aims to determine if those variables are applicable to the task of stock forecasting.
+It can further strengthen or weaken the hypotheses about their links with the stock market, though not prove of disprove them. The proposed study is not a causal study; improving prediction power does not directly mean that a variable is causally significant, the opposite is not true as well.
+
+Moreover, the results on Russia most likely will not be applicable to other countries or the future Russian stock market. Huge structural shocks can very drastically change the nature of stock markets and disrupt links between factors, rendering analysis inapplicable. However, this provides opportunity for future research to expand proposed methodology on other countries and different periods.
+
+\printbibliography
+
+\end{document}
