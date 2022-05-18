@@ -57,11 +57,11 @@ def load_currency(name, path='data/'):
     data.columns = [f'{c}_{name.lower()}' for c in data.columns]
     return data
 
-def load_yield(path='data/'):
+def load_yield(names, path='data/'):
     from functools import reduce
     
     dfs = []
-    for i in [2,5,10,30]:
+    for i in names:
         data = pd.read_csv(f'{path}/DGS{i}.csv')
         data.columns = ['date', f'yield_{i}']
         data = data.loc[data[f'yield_{i}'] != '.', :]

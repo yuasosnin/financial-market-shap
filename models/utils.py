@@ -9,6 +9,14 @@ import matplotlib.pyplot as plt
 import datetime, math, json
 
 
+def columns_suffix(df, name):
+    df = df.reset_index()
+    df.columns = [c.lower() for c in df.columns]
+    df = df.set_index('date', drop=True)
+    df.columns = [f'{c}_{name}' for c in df.columns]
+    df = df.reset_index()
+    return df
+
 def multi_merge(df_list, on=None, how='outer'):
     from functools import reduce
     return reduce(lambda df1, df2: pd.merge(df1, df2, on=on, how=how), df_list)
