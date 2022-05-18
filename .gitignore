@@ -6,7 +6,9 @@ nis
 lightning_logs
 logs
 data/dump
-data/Monash
+data
+old
+
 
 *.aux
 *.glo

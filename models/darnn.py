@@ -6,7 +6,8 @@ import torch.nn as nn
 import torch.nn.functional as F
 from sklearn.metrics import mean_squared_error, mean_absolute_error
 from tqdm.notebook import tqdm
-from .trainer import Trainer
+from .utils import *
+# from .trainer import Trainer
 
 
 class InputAttentionEncoder(nn.Module): ### alaxey kurochkin
@@ -22,7 +23,7 @@ class InputAttentionEncoder(nn.Module): ### alaxey kurochkin
             decides whether to initialize cell state of new time window with values of the last cell state
             of previous time window or to initialize it with zeros
         """
-        super(self.__class__, self).__init__()
+        super().__init__()
         self.N = N
         self.M = M
         self.T = T
@@ -80,7 +81,7 @@ class TemporalAttentionDecoder(nn.Module):
             decides whether to initialize cell state of new time window with values of the last cell state
             of previous time window or to initialize it with zeros
         """
-        super(self.__class__, self).__init__()
+        super().__init__()
         self.M = M
         self.P = P
         self.T = T
@@ -144,52 +145,71 @@ class TemporalAttentionDecoder(nn.Module):
     
 class DARNN(nn.Module):
     def __init__(self, N, M, P, T, stateful_encoder=False, stateful_decoder=False):
-        super(self.__class__, self).__init__()
+        super().__init__()
         self.encoder = InputAttentionEncoder(N, M, T, stateful_encoder)
         self.decoder = TemporalAttentionDecoder(M, P, T, stateful_decoder)
-    def forward(self, X_history, y_history):
-        encoded_x, x_attention = self.encoder(X_history)
-        out_y, t_attention = self.decoder(encoded_x, y_history)
-        return out_y, x_attention, t_attention
+        self.init_weights()
+
+    def init_weights(self):
+        for layer in self.modules():
+            if isinstance(layer, nn.Conv1d):
+                nn.init.kaiming_normal_(layer.weight.data)
+                if layer.bias is not None:
+                    nn.init.constant_(layer.bias.data, 0.01)
+            elif isinstance(layer, nn.Linear):
+                nn.init.kaiming_normal_(layer.weight.data)
+                if layer.bias is not None:
+                    nn.init.constant_(layer.bias.data, 0.0)
+            elif isinstance(layer, nn.LSTM):
+                for param in layer.parameters():
+                    if len(param.shape) >= 2:
+                        nn.init.orthogonal_(param.data)
+                    else:
+                        nn.init.constant_(param.data, 0)
+                        
+    def forward(self, x, y):
+        encoded_x, x_attention = self.encoder(x)
+        out, t_attention = self.decoder(encoded_x, y)
+        return out, x_attention, t_attention
    
     
-class DARNNTrainer(Trainer):       
-    def forward(self, x, y, return_attention=False):
-        output, x_attention, t_attention = self.model.forward(x, y)
-        if self.task == 'classification':
-            output = torch.sigmoid(output)
-        if return_attention:
-            return output, x_attention, t_attention
-        else:
-            return output
+# class DARNNTrainer(Trainer):       
+#     def forward(self, x, y, return_attention=False):
+#         output, x_attention, t_attention = self.model.forward(x, y)
+#         if self.task == 'classification':
+#             output = torch.sigmoid(output)
+#         if return_attention:
+#             return output, x_attention, t_attention
+#         else:
+#             return output
     
-    def prediction_step(self, batch):
-        x, y, _ = self._prepare_batch(batch)
-        output, x_attention, t_attention = self.forward(x, y, return_attention=True)
-        return output.cpu(), x_attention.cpu(), t_attention.cpu()
+#     def prediction_step(self, batch):
+#         x, y, _ = self._prepare_batch(batch)
+#         output, x_attention, t_attention = self.forward(x, y, return_attention=True)
+#         return output.cpu(), x_attention.cpu(), t_attention.cpu()
 
-    def predict(self, data_loader, verbose=True):
-        if verbose: tqdm_ = tqdm
-        else: tqdm_ = lambda x: x
-        ret = {
-            'y_true': np.array([]),
-            'y_pred': np.array([]),
-            'x_attentions': [],
-            't_attentions': []
-        }
-        self.eval()
-        for batch in tqdm_(data_loader):
-            X, y, target  = batch
-            x_attention, t_attention = None, None
-            output = self.prediction_step(batch)
-            if isinstance(output, tuple) and len(output)==3:
-                output, x_attention, t_attention = output
-            ret['y_pred'] = np.concatenate((ret['y_pred'], output.detach().numpy().flatten()))
-            ret['y_true'] = np.concatenate((ret['y_true'], target.cpu().numpy().flatten()))
-            if x_attention is not None:
-                ret['x_attentions'].append(x_attention.detach())
-                ret['t_attentions'].append(t_attention.detach())
-        if x_attention is not None:
-            ret['x_attentions'] = torch.cat(ret['x_attentions'])
-            ret['t_attentions'] = torch.cat(ret['t_attentions'])
-        return ret
+#     def predict(self, data_loader, verbose=True):
+#         if verbose: tqdm_ = tqdm
+#         else: tqdm_ = lambda x: x
+#         ret = {
+#             'y_true': np.array([]),
+#             'y_pred': np.array([]),
+#             'x_attentions': [],
+#             't_attentions': []
+#         }
+#         self.eval()
+#         for batch in tqdm_(data_loader):
+#             X, y, target  = batch
+#             x_attention, t_attention = None, None
+#             output = self.prediction_step(batch)
+#             if isinstance(output, tuple) and len(output)==3:
+#                 output, x_attention, t_attention = output
+#             ret['y_pred'] = np.concatenate((ret['y_pred'], output.detach().numpy().flatten()))
+#             ret['y_true'] = np.concatenate((ret['y_true'], target.cpu().numpy().flatten()))
+#             if x_attention is not None:
+#                 ret['x_attentions'].append(x_attention.detach())
+#                 ret['t_attentions'].append(t_attention.detach())
+#         if x_attention is not None:
+#             ret['x_attentions'] = torch.cat(ret['x_attentions'])
+#             ret['t_attentions'] = torch.cat(ret['t_attentions'])
+#         return ret

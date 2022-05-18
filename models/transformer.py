@@ -7,7 +7,9 @@ import torch.nn.functional as F
 from sklearn.metrics import mean_squared_error, mean_absolute_error
 from tqdm.notebook import tqdm
 import math
-from .trainer import Trainer
+from .utils import *
+# from .trainer import Trainer
+
 
 class PositionalEncoding(nn.Module):
 
@@ -46,7 +48,7 @@ class VanillaTransformer(nn.Module):
         }
         
         # self.src_mask = None
-        self.pos_encoder = PositionalEncoding(self.input_size)
+        # self.pos_encoder = PositionalEncoding(self.input_size)
         self.encoder_layer = nn.TransformerEncoderLayer(d_model=self.input_size, nhead=self.nhead, dropout=self.dropout, batch_first=True)
         self.transformer_encoder = nn.TransformerEncoder(self.encoder_layer, num_layers=self.num_layers)        
         self.decoder = nn.Linear(self.input_size, 1)
@@ -74,19 +76,19 @@ class VanillaTransformer(nn.Module):
         return mask
 
     
-class TransformerTrainer(Trainer):
-    def forward(self, x, y):
-        x = torch.cat((x, y), dim=2)
-        output =  self.model.forward(x)
-        if self.task == 'classification':
-            return torch.sigmoid(output)
-        return output
+# class TransformerTrainer(Trainer):
+#     def forward(self, x, y):
+#         x = torch.cat((x, y), dim=2)
+#         output =  self.model.forward(x)
+#         if self.task == 'classification':
+#             return torch.sigmoid(output)
+#         return output
     
-    def _prepare_batch(self, batch):
-        x, y, target  = batch
-        x = x.to(self.device)
-        y = y.to(self.device)
-        target = target.to(self.device)
-        target = torch.cat([y[:,1:,:].flatten(1), target], dim=1)
-        return x, y, target
+#     def _prepare_batch(self, batch):
+#         x, y, target  = batch
+#         x = x.to(self.device)
+#         y = y.to(self.device)
+#         target = target.to(self.device)
+#         target = torch.cat([y[:,1:,:].flatten(1), target], dim=1)
+#         return x, y, target
     
