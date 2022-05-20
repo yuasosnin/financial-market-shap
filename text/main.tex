@@ -1,8 +1,9 @@
-\documentclass{elsarticle}
+\documentclass[stu]{apa7}
 \usepackage[utf8]{inputenc}
 \usepackage[english]{babel}
 \usepackage{csquotes}
 \usepackage{lipsum}
+\usepackage{amsmath}
 
 %\usepackage{tocloft}
 %\renewcommand{\cftsecleader}{\cftdotfill{\cftdotsep}}
@@ -28,7 +29,7 @@
 %	right=25mm
 %}
 
-\usepackage[style=apa, doi=true, backend=biber, natbib]{biblatex}
+\usepackage[style=apa, doi=false, backend=biber, natbib]{biblatex}
 \addbibresource{ref.bib}
 \AtEveryBibitem{
 	\clearfield{url}
@@ -36,6 +37,9 @@
 	\clearfield{note}
 	\clearfield{annote}
 }
+
+\usepackage{graphicx}
+% \bibliographystyle{elsarticle-num}
 
 %\title{}
 %\shorttitle{}
@@ -72,9 +76,32 @@ My aim therefore is to test applicability of macroeconomic data for the task of 
 
 It is not a classic econometric study, as improving prediction does not imply causality. However, improving prediction would mean there is certainly some relevant information, which powerful ML methods are able to retrieve and utilize.
 
-The rest of this proposal is organized as follows. Relevant literature is reviewed in the next section. Methodology section explains data acquisition procedure, training pipeline, optimization algorithms, proposes the list of models, and sketches variable selection approach. Then I speculate on possible results, and, finally, conclude the proposal with limitations of the study.
+\subsection{Financial Time Series Foracasting}
 
-\section{Literature Review}
+
+
+\subsection{Forecasting models}
+
+Econometric models employed by authors in most of mentioned articles are either some variations of GARCH (generalized autoregressive conditional heteroskedasticity) model or VAR, a multivariate generalization of ARIMA (autoregressive integrated moving average) model. While being suitable for causality determination, in terms of predictive power, those are by far not the state of the art at the moment \citep{siami-namini_forecasting_2018}. It is apparent that for as complex entity as stock market prices or returns <<simple>> linear or ARCH models do not suffice.
+
+Deep Learning has gained popularity with remarkable increase of its power, complexity and number of possible applications. Financial time series is no exception. An increasing number of articles are being published by ML specialists, introducing new models and approaches. I will cover the basic and most popular architectures.
+
+The basic deep learning architecture is Artificial Neural Network \citep{sezer_financial_2019}. It is, broadly speaking, a combination of parametric matrix multiplications with non-linear activation function applied to each of them, stacked together. For each vector of variables (in time series context, lags of the variable of interest) a single value $y_{t+1}$ is produced. Then, it is compared with the true future value using a loss function. Because loss functions and all layer operations are differentiable with respect to parameters, gradients can be calculated, and the parameters get updated in the direction of minimizing the loss, with a procedure called backpropagation. After sufficient number of iterations, the model <<learns>> the best parameters.
+
+The simple ANN model, however, is somewhat equivalent to running a linear regression on lagged time series data: it does not account for time dependence and autocorrelation \citep{torres_deep_2021}. For this purpose, Recurrent Neural Networks were introduced, first in the field of Natural Language Processing \citep{hewamalage_recurrent_2021}. An RNN is made of a single <<cell>> (still a combination of parametric matrix multiplication, concatenation and nonlinear functions) rolling over instances of a time-dependent data. In this architecture an input is a sequence of some predefined length, and the model gets applied to every sequence in the data in a rolling window manner.
+
+There are several types of RNN cells, each carefully designed by ML researches to better accomplish prediction tasks. The most widely used is called LSTM, Long Short-Term Memory \citep{greff_lstm_2017}.
+Initially designed to deal with the vanishing gradient problem, LSTM can also utilize both short- and long-term temporal dependence by receiving previous step state as input, which makes it very good for time series tasks with autocorrelation of higher orders.
+
+Most of papers in this field employ DL architectures in single-stock forecasting task. A number of basic variables like Open, Close prices, Volume and Volatility of a stock or a stock index are fed into a neural network of some new design, then the results are compared to previously developed models and baselines. % (for example, x, y, z).
+Some of the authors use technical indicators \citep[e.g.][]{nelson_stock_2017, chen_lstm-based_2015}. % include other OR reviews because there is as ton of them
+There is a stream of literature incorporating complex information like tweets, news or Google trends into forecasting framework, using different specific NN architectures for processing that data \citep{huang_using_2020, kordonis_stock_2016, hu_predicting_2018}. Some just use a very large number of stocks at the same time for training \citep{li_stock_2018}.
+
+However, meaningful external macroeconomic factors are rarely used.
+The closest work in some sense is by \citet{chen_constructing_2021}. The authors test, whether information on gold and oil prices is suitable for predicting future stock movement (a classification task, contrary to regression task of predicting the future value), using a Convolution Neural Network (CNN). They conclude that this external information enhance forecasts for firms from semiconductor, petroleum, and automotive industries, while not affecting apparel, fast food, and copy processing industries.
+I plan a somewhat similar approach.
+
+\subsection{Macroeconomic Variables}
 
 Among the most studied relationships of external variables with stock prices are oil prices, exchange rates and inflation. They make up a significant branch of financial econometric literature.
 
@@ -98,75 +125,111 @@ There is also evidence of inflation \citep{anari_stock_2001, eldomiaty_associati
 
 As for the case of Russia, there are studies examining causal determinants of Russian stock market. \citet{kordonis_stock_2016} consider the period between 1997 and 2012 and oil prices and eastern European stock markets performance as variables to affect stock market in Russia. According to their findings, oil prices stopped being significant after 2006, while correlation with other markets increased in that period. \citet{robert_d_gay_effect_2008} studies several emerging economies' markets, including Brazil, India, China and Russia in the period of 1999-2006. They report a not significant result for both oil prices and exchange rates and all four countries. \citet{lozinskaia_fundamental_2019} study the impact of oil prices, exchange rates, foreign stock indexes and interest rates on Russian stock market from 2003 to 2018. The authors document a varying relationship, with variations caused by structural breaks. This list of studies is by no means inclusive.
 
-Econometric models employed by authors in most of mentioned articles are either some variations of GARCH (generalized autoregressive conditional heteroskedasticity) model or VAR, a multivariate generalization of ARIMA (autoregressive integrated moving average) model. While being suitable for causality determination, in terms of predictive power, those are by far not the state of the art at the moment \citep{siami-namini_forecasting_2018}. It is apparent that for as complex entity as stock market prices or returns <<simple>> linear or ARCH models do not suffice.
+\section{Data and Methodology}
 
-Deep Learning has gained popularity with remarkable increase of its power, complexity and number of possible applications. Financial time series is no exception. An increasing number of articles are being published by ML specialists, introducing new models and approaches. I will cover the basic and most popular architectures.
+\subsection{Variable Description}
 
-The basic deep learning architecture is Artificial Neural Network \citep{sezer_financial_2019}. It is, broadly speaking, a combination of parametric matrix multiplications with non-linear activation function applied to each of them, stacked together. For each vector of variables (in time series context, lags of the variable of interest) a single value $y_{t+1}$ is produced. Then, it is compared with the true future value using a loss function. Because loss functions and all layer operations are differentiable with respect to parameters, gradients can be calculated, and the parameters get updated in the direction of minimizing the loss, with a procedure called backpropagation. After sufficient number of iterations, the model <<learns>> the best parameters.
+The target variable if the study is Moscow Exchange Index (IMOEX), russian benchmark capitalization-weighted composite index, calculated on 50 best-performing russian issuers of most important sectors of russian economy. As a benchmark index, it represents, broadly, the aggregated dynamics of Russian stock market, so forecasting it yields yada yada
 
-The simple ANN model, however, is somewhat equivalent to running a linear regression on lagged time series data: it does not account for time dependence and autocorrelation \citep{torres_deep_2021}. For this purpose, Recurrent Neural Networks were introduced, first in the field of Natural Language Processing \citep{hewamalage_recurrent_2021}. An RNN is made of a single <<cell>> (still a combination of parametric matrix multiplication, concatenation and nonlinear functions) rolling over instances of a time-dependent data. In this architecture an input is a sequence of some predefined length, and the model gets applied to every sequence in the data in a rolling window manner.
-
-There are several types of RNN cells, each carefully designed by ML researches to better accomplish prediction tasks. The most widely used is called LSTM, Long Short-Term Memory \citep{greff_lstm_2017}.
-Initially designed to deal with the vanishing gradient problem, LSTM can also utilize both short- and long-term temporal dependence by receiving previous step state as input, which makes it very good for time series tasks with autocorrelation of higher orders.
-
-Most of papers in this field employ DL architectures in single-stock forecasting task. A number of basic variables like Open, Close prices, Volume and Volatility of a stock or a stock index are fed into a neural network of some new design, then the results are compared to previously developed models and baselines. % (for example, x, y, z).
-Some of the authors use technical indicators \citep[e.g.][]{nelson_stock_2017, chen_lstm-based_2015}. % include other OR reviews because there is as ton of them
-There is a stream of literature incorporating complex information like tweets, news or Google trends into forecasting framework, using different specific NN architectures for processing that data \citep{huang_using_2020, kordonis_stock_2016, hu_predicting_2018}. Some just use a very large number of stocks at the same time for training \citep{li_stock_2018}.
-
-However, meaningful external macroeconomic factors are rarely used.
-The closest work in some sense is by \citet{chen_constructing_2021}. The authors test, whether information on gold and oil prices is suitable for predicting future stock movement (a classification task, contrary to regression task of predicting the future value), using a Convolution Neural Network (CNN). They conclude that this external information enhance forecasts for firms from semiconductor, petroleum, and automotive industries, while not affecting apparel, fast food, and copy processing industries.
-I plan a somewhat similar approach.
-
-\section{Methodology}
-
-The task of this proposed study is multivariate time series forecasting, i.e. predicting next day's stock price using a sequence of previous price values as well as different <<explanatory>> variables.
-
-Daily data on Russian stocks will be collected from open sources, for example, \url{finam.ru}. Period of observation is preliminarily decided to be from 2011 to 2019 years: data on earlier dates is inaccessible, and later dates exhibit COVID-19 structural shock, likely changing the pattern of connections in data, so it would be unfair to test the model on these new conditions.
-Several Russian publicly traded companies from different sectors will be selected to preform the forecasts.
-
-The following fundamental macroeconomic factors are going to be considered. These variables are freely available in open sources as well.
+I use daily data on IMOEX as well as a number of explanatory variables to perform the forecasts. The variables are:
 
 \begin{itemize}
-	\item Oil, gas, gold prices
-	\item Dollar and Euro exchange rates
-	\item Interest rates on government bonds
-	\item NASDAQ, NYSE, London exchange, etc. indexes
+\item RTSI, the same index, but evaluated in USD instead of Rubles.
+\item Moscow Exchange secotral indexes, namely MOEXOG, MOEXEU, MOEXTL, MOEXMM, MOEXFN, MOEXC, MOEXCH
+\item Shares of top-10 IMOEX constitutes by capitalization
+\item Euro and USD to Ruble exchange rates
+\item Commodity prices of Oil, Natural Gas, and Gold
+\item Foreign market indexes, London exchange index (FTSE), S\&P-500 and NASDAQ index
+\item Yields of Russian government bonds, 1 week to 20 years maturity
 \end{itemize}
 
-Following the standard machine learning procedure, the data will be sequentially split into training, validation and testing samples. The training sample will be used to optimize model's parameters using gradient methods; validation period will be used to tune the model's hyperparameters, i.e. chose the external, non-optimizable parameters which give the best performance on this validation sample; testing data is for final evaluation and comparison between different models.
+For each vairable with standatd OCHLV set (Open, Close, High, Low prices, and trading Volume), 5 stationary features are calculated:
 
-The criterion is Root Mean Squared Error (RMSE) metric, squared deviation of predicted value from the actual one.
+\begin{itemize}
+\item Return
 
 \begin{equation}
-RMSE = \sqrt{\sum_{i=1}^{n} \frac{(\hat{y}_i - y_i)^2}{n}}
+R_t = \frac{P^{Close}_t - P^{Close}_{t-1}}{P^{Close}_{t-1}}
 \end{equation}
 
-Performance of various models is going to be compared to determine if the most advanced Deep learning models do indeed provide better results. The list of models and baselines currently considered is the following:
+\item Range, relative difference betweed Hign and Low
 
-\begin{itemize}
-	\item Linear models
-	\begin{itemize}
-		\item ARIMA
-	\end{itemize}
+\begin{equation}
+Range_t = \frac{P^{High}_t - P^{Low}_{t}}{P^{Low}_{t}}
+\end{equation}
 
-	\item Deep Learning models
-	\begin{itemize}
-		\item ANN
-		\item LSTM
-	\end{itemize}
+\item Volatility, daily realized volatility calculated on 5-minute interval data
 
-	\item Baselines
-	\begin{itemize}
-		\item rolling mean
-		\item previous value
-	\end{itemize}
+\begin{equation}
+RV_t =
+\end{equation}
+
+\item Volume, total daily volume
 \end{itemize}
 
-To analyze variable importance, each group of variables is going to be iteratively excluded from training sample, to compare resulting prediction qualities. If model performance with the factor included is statistically better across multiple trials, the factor will be considered important in a sense of bearing useful information which the model is able to extract.
+The chosen period is from 2018-07-04 to 2019-11-01. This specific period is relatively stable and quiet, without evident structural breaks or extreme news that would undermine performance of the models. Forecasting extreme events, though being another research stream, is outside the scope of this study.
 
-The work will be conducted in Python, using PyTorch, sklearn packages, and likely many others \citep{van_rossum_python_2009, pedregosa_scikit-learn_2011, paszke_pytorch_2019}.
+\subsection{Exploratory Data Analysis and Descriptive Statistics}
 
-\section{Anticipated Results}
+\includegraphics[width=\textwidth]{series.png}
+
+\subsection{Modeling Technique}
+
+Modeling task is multivariate rolling-window one-step-ahead regression forecasting, i.e. predicting one future value based on historical series of pre-defined fixed length. The data is reshaped to match inputs of deep learning models, which is a tensor on shape [B, L, N], where B is batch size, L is sequence length and N is a number of variables. Therefore, one input of a model is a tensor of stacked matrices of the following form:
+
+\begin{equation}
+input = \begin{bmatrix}
+		y^{t} & x_{1}^{t} & \dots & x_{n}^{t} \\[1ex]
+		y^{t-1} & x_{1}^{t-1} & \dots & x_{n}^{t-1} \\[1ex]
+		y^{t-2} & x_{1}^{t-2} & \dots & x_{n}^{t-2} \\[1ex]
+		\vdots & \vdots & \ddots & \vdots \\[1ex]
+		y^{t-T} & x_{1}^{t-T} & \dots & x_{n}^{t-T}
+\end{bmatrix}
+\end{equation}
+
+\begin{equation}
+output = y^{t+1}
+\end{equation}
+
+The length of historic sequence considered at each step is a hyperparameter, and is chosen based on intuition and validaton performance. In my empirical experiments, it is set to either 10 or 20, two or four weeks history.
+
+Before feeding into a model, the data is normalized, i.e. each variable is de-meaned and divided by its standard deviation. The scaling parameters are calculated only on training subset and applied to validation and test periods, to avoid information leakage.
+
+Loss Functional, optimized by Gradient Decent algiriuthms of Neural Network models is Mean Squared Error, a sipmle and typical loss for regression problems. Forecasts are evaluated using MSE and Mean Directional Accuracy (MDA) metrics.
+
+\begin{equation}
+MSE = \frac{1}{N} \sum (y_t - \hat{y}_t)^2
+\end{equation}
+
+\begin{equation}
+MDA = \frac{1}{N} \sum [ sign(\hat{y}_t)=sign(y_t) ]
+\end{equation}
+
+MSE directly measures squared deivation from the true value, making it the main metric for evaluating the performance of considered models. Directional accuracy is a simpler metic, evaluating only the correctness of predicted trend; it is used as an additional way to assess the quality of the models. Usage of this metric, should not be confused with *classification problem*, where only directions are forecasted in th e first place, and models are specifically taught to predict classes via Cross Entropy loss functional.
+
+All models are trained using Adaptive Momentum Stochastic Gradient Decent optimization algorithm (ADAM).
+
+\subsection{Validation Procedure}
+
+Walk-Forward Cross Validation is employed as validation scheme. It is a common methodology in time series forecasting, thought underutilized in machine learning environment.
+
+The data is sequentially split into 12 folds, one for each subsequent week of testing data. Each fold consists of 265 training instances, followed by validation and test preionds, 5 days (a trading week) each. For each fold, the training period is used to train model parameters, validation period is used to determine hyperparameters, and test period is used for final evaluation and comparison between different models.
+
+\includegraphics[width=\textwidth]{walkforward.png}
+
+In contrast with dynamic or multiple-days-ahead forecasts, true values are input into the model for every subsequent day of the test period.
+
+\subsection{Considered Models}
+
+Baseline
+
+LSTM
+
+CNN-LSTM
+
+CNN (?)
+
+\section{Empirical Results}
 
 The result of the study, firstly, is a choice of a best-performing model, in terms of RMSE. It is likely going to be LSTM or some variation of it, though it is not certain, hence the application of other models for comparison is planned. Researches have established that Neural Network approaches generally achieve higher quality predictions compared to linear models like ARIMA \citep{siami-namini_comparison_2018}. However, sometimes it does not hold for various reasons, like the choice of hyperparameters, suboptimal training procedure or the nature of the data. As training and testing the models on Russian stock has not been done previously, this study can provide an additional example of successful or unsuccessful application of DL in finance.
 
@@ -182,5 +245,6 @@ It can further strengthen or weaken the hypotheses about their links with the st
 Moreover, the results on Russia most likely will not be applicable to other countries or the future Russian stock market. Huge structural shocks can very drastically change the nature of stock markets and disrupt links between factors, rendering analysis inapplicable. However, this provides opportunity for future research to expand proposed methodology on other countries and different periods.
 
 \printbibliography
+% \bibliography{ref.bib}
 
 \end{document}

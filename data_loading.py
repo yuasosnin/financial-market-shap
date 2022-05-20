@@ -64,11 +64,9 @@ class FinamDataLoader():
         data['date'] = pd.to_datetime(data['date'].astype(str)+data['time'], format='%Y%m%d%H:%M:%S')
         data = data.drop('time', axis=1)
         data = data.drop_duplicates('date')
-        data['return'] = data['close'].pct_change()
-        data['openret'] = data['open'].pct_change()
-        data['highret'] = data['high'].pct_change()
-        data['lowret'] = data['low'].pct_change()
-        data['highlow'] = data['high'] - data['low']
+        data['return'] = logreturn(data['close'])
+        data['highlow'] = (data['high'] - data['low']) / data['low']
+        data['volume'] = np.log(data['volume'] + 1)
         data.columns = [column+('_'+name.lower())*bool(column not in ['date_time', 'date', 'time']) for column in data.columns]
         return data
     
@@ -83,7 +81,7 @@ def make_daily(data):
     cl = {f'close_{d}': 'last' for d in idx}
     hi = {f'high_{d}': 'max' for d in idx}
     lo = {f'low_{d}': 'min' for d in idx}
-    vo = {f'volume_{d}': 'mean' for d in idx}
+    vo = {f'volume_{d}': 'sum' for d in idx}
 
     groupdict = op
     for i in (cl, hi, lo, vo):
@@ -91,9 +89,10 @@ def make_daily(data):
     
     data_day = data.groupby(data.date.dt.date).aggregate(groupdict)
     for i in idx:
-        data_day[f'return_{i}'] = data_day[f'close_{i}'].pct_change()
+        data_day[f'return_{i}'] = logreturn(data_day[f'close_{i}'])
         data_day[f'volatility_{i}'] = data.groupby(data.date.dt.date).aggregate({f'return_{i}': lambda x: np.sqrt((x**2).sum())})
         data_day[f'highlow_{i}'] = (data_day[f'high_{i}'] - data_day[f'low_{i}']) / data_day[f'low_{i}']
+        data_day[f'volume_{i}'] = np.log(data_day[f'volume_{i}'] + 1)
     data_day.index = pd.DatetimeIndex(data_day.index)
     
     return data_day.dropna().reset_index()
@@ -137,9 +136,9 @@ if __name__ == '__main__':
 
     curr_list = []
     for i in ['usd', 'eur']:
-        data_curr = investpy.currency_crosses.get_currency_cross_historical_data(f'{i.upper()}/RUB', from_date='01/01/2017', to_date='01/01/2022')
+        data_curr = investpy.currency_crosses.get_currency_cross_historical_data(f'{i.upper()}/RUB', from_date='01/01/2017', to_date='01/01/2020')
         data_curr = data_curr.drop('Currency', axis=1)
-        data_curr['return'] = data_curr['Close'].pct_change()
+        data_curr['return'] = logreturn(data_curr['Close'])
         data_curr['highlow'] = (data_curr['High'] - data_curr['Low']) / data_curr['Low']
         data_curr = columns_suffix(data_curr, i)
         curr_list.append(data_curr)
@@ -148,9 +147,9 @@ if __name__ == '__main__':
     
     bonds_list = []
     for i in bonds:
-        data_bond = investpy.bonds.get_bond_historical_data(f'Russia {i}', from_date='01/01/2017', to_date='01/01/2022', order='ascending', interval='Daily')
+        data_bond = investpy.bonds.get_bond_historical_data(f'Russia {i}', from_date='01/01/2017', to_date='01/01/2020', order='ascending', interval='Daily')
         data_bond = data_bond[['Close']]
-        data_bond.columns = ['yield']
+        data_bond['yield'] = data_bond['Close'].pct_change()
         data_bond = columns_suffix(data_bond, i.lower())
         bonds_list.append(data_bond)
     multi_merge(bonds_list, on='date').sort_values('date').to_csv('data/bonds_day.csv', index=False)

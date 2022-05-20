@@ -31,6 +31,9 @@ def robust_std(x, p=0.05):
     high = x.quantile(1-p)
     return x[(x>low) & (x<high)].std()
 
+def logreturn(s):
+    return np.log(s) - np.log(s.shift(1))
+
 
 def calculate_norm_stats(df: pd.DataFrame, train_size=1, exclude=[], only_std=[], robust=False):
     if isinstance(train_size, float):
