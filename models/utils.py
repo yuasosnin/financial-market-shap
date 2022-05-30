@@ -6,7 +6,9 @@ import torch.nn.functional as F
 from torch.utils.data import Dataset, Subset, DataLoader
 from tqdm.notebook import tqdm
 import matplotlib.pyplot as plt
-import datetime, math, json
+import datetime, math, json, os
+from sklearn.metrics import mean_squared_error as mse
+from sklearn.metrics import mean_absolute_error as mae
 
 
 def columns_suffix(df, name):
@@ -85,45 +87,6 @@ def sequential_split(dataset: Dataset, splits):
 
 
 class TickerDataset(Dataset):
-    def __init__(self, df_x, y, seq_length=10, steps=1, task='regression', norm_stats=None):
-        self.seq_length = seq_length
-        self.steps = steps
-        self.task = task
-        self.data = torch.tensor(df_x.values).float()
-        if isinstance(y, list):
-            if all([isinstance(i, int) for i in y]):
-                self.y_idx = y
-            elif all([isinstance(i, str) for i in y]):
-                self.y_idx = [list(df_x.columns).index(i) for i in y]
-        elif isinstance(y, int):
-            self.y_idx = y
-        elif isinstance(y, str):
-            self.y_idx = list(df_x.columns).index(y)
-        self.x_idx = [i for i in range(self.data.shape[1]) if (i not in (self.y_idx if isinstance(self.y_idx, list) else [self.y_idx]))]
-        if norm_stats is not None:
-            self.norm_stats = torch.tensor(norm_stats)
-            self.data = (self.data - self.norm_stats[0]) / self.norm_stats[1]
-        else: self.norm_stats = None
-
-    def __len__(self):
-        return self.data.shape[0] - self.seq_length - self.steps
-
-    def __getitem__(self, idx): 
-        x = self.data[idx:idx+self.seq_length, self.x_idx].float()
-        if isinstance(self.y_idx, int):
-            y = self.data[idx:idx+self.seq_length, [self.y_idx]].float()
-        else:
-            y = self.data[idx:idx+self.seq_length, self.y_idx].float()
-        target = self.data[idx+self.seq_length:idx+self.seq_length+self.steps, self.y_idx].float()#.squeeze(0)
-        if self.task == 'classification':
-            target = (target > y[-1]).float()
-        return (
-            x, # x lags
-            y, # y lags
-            (target if isinstance(self.y_idx, int) else target.squeeze(0)) # target
-        )
-
-class TickerDataset(Dataset):
     def __init__(self, df_x, y, seq_length=10, norm_stats=None):
         self.seq_length = seq_length
         if norm_stats is not None:
@@ -143,12 +106,6 @@ class TickerDataset(Dataset):
         elif isinstance(y, str):
             self.y_idx = list(df_x.columns).index(y)
         self.x_idx = [i for i in range(self.data.shape[1]) if (i not in (self.y_idx if isinstance(self.y_idx, list) else [self.y_idx]))]
-        
-    def tensor_apply(self, x, fun):
-        x_d = torch.zeros_like(x)
-        for i, t in enumerate(x):
-            x_d[i] = torch.from_numpy(fun(t.numpy()))
-        return x_d
 
     def __len__(self):
         return self.data.shape[0] - self.seq_length
@@ -209,36 +166,29 @@ def plot_cumsum(y_pred, y_true):
 def plot_loss(train_loss, valid_loss, same_axis=True, **kwargs):
     if same_axis == True:
         fig, ax1 = plt.subplots(**kwargs)
-        ax1.set_xlabel('epochs')
-        ax1.set_ylabel('train loss')
+        ax1.set_xlabel('Epochs')
+        ax1.set_ylabel('Train loss')
         plot1 = ax1.plot(train_loss, label='Train')
         # ax1.legend()
 
         ax2 = ax1.twinx()
-        ax2.set_ylabel('valid loss')
-        plot2 = ax2.plot(valid_loss, label='Valid', color='orange')
+        ax2.set_ylabel('Valid loss')
+        plot2 = ax2.plot(valid_loss, label='Valid', color='C1')
         # ax2.legend()
 
         # added these three lines
         plots = plot1+plot2
         labs = [l.get_label() for l in plots]
-        fig.legend(plots, labs, loc=1)
-        plt.title('Loss')
+        ax1.legend(plots, labs, loc='upper right')
+        # plt.title('Loss')
         
         fig.tight_layout()
         return fig
     else:
         plt.plot(train_loss)
-        plt.plot(valid_loss, color='orange')
+        plt.plot(valid_loss, color='C1')
         return None
-
-
-class NumpyEncoder(json.JSONEncoder):
-    def default(self, obj):
-        if isinstance(obj, np.ndarray):
-            return obj.tolist()
-        return json.JSONEncoder.default(self, obj)
-
+    
     
 def l_out(l_in, kernel_size, padding=0, dilation=1, stride=None):
     if stride is None:
@@ -252,3 +202,54 @@ def number_params(model):
 
 def get_model_params(model):
     return {k:v for k,v in model.__dict__.items() if k.split('_')[0] not in ('', 'training')}
+
+
+def read_all_logs(model_name, split='val'):
+    errors_table = {'period':[], 'version':[], 'val_mse':[], 'val_zero_mse':[], 'test_mse':[], 'test_zero_mse':[]}
+    n_splits = max([int(f.split('_')[-1]) for f in os.listdir(f'logs/model_{model_name}')])+1
+    n_versions = max([int(f.split('_')[-1]) for f in os.listdir(f'logs/model_{model_name}/period_0')])+1
+
+    for p in tqdm(range(n_splits)):
+        for v in range(n_versions):
+            y_true, y_pred = pd.read_csv(f'logs/model_{model_name}/period_{p}/version_{v}/results.csv').values.T
+            errors_table['period'].append(p)
+            errors_table['version'].append(v)
+            errors_table['val_mse'].append(mse(y_true[-10:-5:], y_pred[-10:-5:]))
+            errors_table['val_zero_mse'].append(mse(y_true[-10:-5:], np.zeros_like(y_pred[-10:-5:])))
+            errors_table['test_mse'].append(mse(y_true[-5:], y_pred[-5:]))
+            errors_table['test_zero_mse'].append(mse(y_true[-5:], np.zeros_like(y_pred[-5:])))
+            
+            # errors_table['val_acc'].append(dir_acc(y_true[-10:-5:], y_pred[-10:-5:]))
+            # errors_table['val_zero_acc'].append(dir_acc(y_true[-10:-5:], np.zeros_like(y_pred[-10:-5:])))
+            # errors_table['test_acc'].append(dir_acc(y_true[-5:], y_pred[-5:]))
+            # errors_table['test_zero_acc'].append(dir_acc(y_true[-5:], np.zeros_like(y_pred[-5:])))
+    table = pd.DataFrame(errors_table)
+    return table
+
+
+def res_table(logs_table, model_name='model', metric='mse'):
+    zero_mse = logs_table['test_zero_mse'].unique()
+    idx_min = logs_table.groupby('period')['val_mse'].idxmin()
+    min_table = logs_table.iloc[idx_min]
+    return min_table.reset_index()[[f'test_zero_{metric}', f'test_{metric}']].T.rename({f'test_zero_{metric}': 'naive_zero', f'test_{metric}': model_name})
+
+
+def plot_result_box(table, figsize=(15,5), split='val', **kwargs):
+    zero_mse = table[f'{split}_zero_mse'].unique()
+    a = table.pivot(index='period', columns='version')[f'{split}_mse'].values
+    fig = plt.figure(figsize=figsize, **kwargs)
+    plt.boxplot(a.T);
+    plt.plot(range(1,a.shape[0]+1), zero_mse, 'o-', linewidth=2)
+    plt.tight_layout()
+    return fig
+
+
+def plot_result_min(table, figsize=(15,5), split='val', **kwargs):
+    zero_mse = table[f'{split}_zero_mse'].unique()
+    idx_min = table.groupby('period')[f'val_mse'].idxmin()
+    min_table = table.iloc[idx_min]
+    fig = plt.figure(figsize=figsize, **kwargs)
+    plt.plot(range(1,min_table.shape[0]+1), min_table[f'{split}_zero_mse'], 'o-', linewidth=2)
+    plt.plot(range(1,min_table.shape[0]+1), min_table[f'{split}_mse'], 'o-', linewidth=2) 
+    plt.tight_layout()
+    return fig

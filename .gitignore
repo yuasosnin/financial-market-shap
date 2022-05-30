@@ -1,13 +1,13 @@
 .ipynb_checkpoints
 __pycache__
 venv
-articles
 nis
 lightning_logs
 logs
-data/dump
 data
 old
+proposal
+data.ipynb
 
 
 *.aux
