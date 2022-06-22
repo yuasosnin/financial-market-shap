@@ -7,7 +7,13 @@ logs
 data
 old
 proposal
+
 data.ipynb
+TODO.txt
+text/main_merged.pdf
+text/defence.md
+text/titlepage.docx
+text/titlepage.pdf
 
 
 *.aux

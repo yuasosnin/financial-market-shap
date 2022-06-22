@@ -1,9 +1,7 @@
 import pandas as pd
 import numpy as np
 from tqdm.notebook import tqdm
-import matplotlib.pyplot as plt
-import datetime, math, json
-from .data import *
+import datetime, math
 
 
 def _load_df(name, date, path=None):
