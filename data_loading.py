@@ -96,6 +96,17 @@ def make_daily(data):
     data_day.index = pd.DatetimeIndex(data_day.index)
     
     return data_day.dropna().reset_index()
+
+def add_columns_suffix(df, name):
+    df = df.reset_index()
+    df.columns = [c.lower() for c in df.columns]
+    df = df.set_index('date', drop=True)
+    df.columns = [f'{c}_{name}' for c in df.columns]
+    df = df.reset_index()
+    return df
+
+def logreturn(s):
+    return np.log(s) - np.log(s.shift(1))
    
 
 indexes = ['IMOEX', 'RTSI']
@@ -136,21 +147,23 @@ if __name__ == '__main__':
 
     curr_list = []
     for i in ['usd', 'eur']:
-        data_curr = investpy.currency_crosses.get_currency_cross_historical_data(f'{i.upper()}/RUB', from_date='01/01/2017', to_date='01/01/2020')
+        data_curr = investpy.currency_crosses.get_currency_cross_historical_data(
+            f'{i.upper()}/RUB', from_date='01/01/2017', to_date='01/01/2020')
         data_curr = data_curr.drop('Currency', axis=1)
         data_curr['return'] = logreturn(data_curr['Close'])
         data_curr['highlow'] = (data_curr['High'] - data_curr['Low']) / data_curr['Low']
-        data_curr = columns_suffix(data_curr, i)
+        data_curr = add_columns_suffix(data_curr, i)
         curr_list.append(data_curr)
     multi_merge(curr_list, on='date').sort_values('date').to_csv('data/currencies_day.csv', index=False)
     print('currencies loaded')
     
     bonds_list = []
     for i in bonds:
-        data_bond = investpy.bonds.get_bond_historical_data(f'Russia {i}', from_date='01/01/2017', to_date='01/01/2020', order='ascending', interval='Daily')
+        data_bond = investpy.bonds.get_bond_historical_data(
+            f'Russia {i}', from_date='01/01/2017', to_date='01/01/2020', order='ascending', interval='Daily')
         data_bond = data_bond[['Close']]
         data_bond['yield'] = data_bond['Close'].pct_change()
-        data_bond = columns_suffix(data_bond, i.lower())
+        data_bond = add_columns_suffix(data_bond, i.lower())
         bonds_list.append(data_bond)
     multi_merge(bonds_list, on='date').sort_values('date').to_csv('data/bonds_day.csv', index=False)
     print('bonds loaded')
