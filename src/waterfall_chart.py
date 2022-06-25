@@ -12,31 +12,19 @@ import matplotlib.lines as lines
 
 #------------------------------------------
 
-def waterfall_plot(
-    index, 
-    data, 
-    title="", 
-    x_lab="", 
-    y_lab="",
-    formatting = "{:,.1f}", 
-    green_color='#29EA38', 
-    red_color='#FB3C62', 
-    blue_color='#24CAFF',
-    sorted_value=False, 
-    threshold=None, 
-    other_label='other', 
-    net_label='net', 
-    rotation_value=30, 
-    blank_color=(0,0,0,0), 
-    figsize=(10,10)
-):
+def plot(index, data, Title="", x_lab="", y_lab="",
+         formatting="{:,.1f}", green_color='#29EA38', red_color='#FB3C62', blue_color='#24CAFF',
+         sorted_value=False, threshold=None, other_label='other', net_label='net', 
+         rotation_value=30, blank_color=(0,0,0,0), figsize=(10,10), fontsize=None):
     '''
-    https://github.com/chrispaulca/waterfall
     Given two sequences ordered appropriately, generate a standard waterfall chart.
     Optionally modify the title, axis labels, number formatting, bar colors, 
     increment sorting, and thresholding. Thresholding groups lower magnitude changes
     into a combined group to display as a single entity on the chart.
     '''
+    
+    if fontsize is None:
+        fontsize = plt.rcParams['font.size'] * 0.9
     
     #convert data and index to np.array
     index=np.array(index)
@@ -72,14 +60,14 @@ def waterfall_plot(
     ax.yaxis.set_major_formatter(formatter)
 
     #Store data and create a blank series to use for the waterfall
-    trans = pd.DataFrame(data=changes,index=index)
-    blank = trans.amount.cumsum().shift(1).fillna(0)
+    trans = pd.DataFrame(data=changes, index=index)
+    blank = trans['amount'].cumsum().shift(1).fillna(0)
     
-    trans['positive'] = trans['amount'] > 0
+    trans['positive'] = (trans['amount'] > 0).astype(int)
 
     #Get the net total number for the final element in the waterfall
-    total = trans.sum().amount
-    trans.loc[net_label]= total
+    total = trans.sum()['amount']
+    trans.loc[net_label, ['amount', 'positive']] = [total, 99]
     blank.loc[net_label] = total
 
     #The steps graphically show the levels as well as used for label placement
@@ -91,9 +79,9 @@ def waterfall_plot(
     blank.loc[net_label] = 0
     
     #define bar colors for net bar
-    trans.loc[trans['positive'] > 1, 'positive'] = 99
-    trans.loc[trans['positive'] < 0, 'positive'] = 99
-    trans.loc[(trans['positive'] > 0) & (trans['positive'] < 1), 'positive'] = 99
+    # trans.loc[trans['positive'] > 1, 'positive'] = 99
+    # trans.loc[trans['positive'] < 0, 'positive'] = 99
+    # trans.loc[(trans['positive'] > 0) & (trans['positive'] < 1), 'positive'] = 99
     
     trans['color'] = trans['positive']
     
@@ -105,7 +93,7 @@ def waterfall_plot(
     
     #Plot and label
     my_plot = plt.bar(range(0,len(trans.index)), blank, width=0.5, color=blank_color)
-    plt.bar(range(0,len(trans.index)), trans.amount, width=0.6,
+    plt.bar(range(0,len(trans.index)), trans['amount'], width=0.6,
              bottom=blank, color=my_colors)       
                                    
     
@@ -118,9 +106,9 @@ def waterfall_plot(
     plt.ylabel(y_lab + "\n")
 
     #Get the y-axis position for the labels
-    y_height = trans.amount.cumsum().shift(1).fillna(0)
+    y_height = trans['amount'].cumsum().shift(1).fillna(0)
     
-    temp = list(trans.amount)
+    temp = list(trans['amount'])
     
     # create dynamic chart range
     for i in range(len(temp)):
@@ -158,10 +146,10 @@ def waterfall_plot(
         # Determine if we want a neg or pos offset
         if row['amount'] > 0:
             y += (pos_offset*2)
-            plt.annotate(formatting.format(row['amount']),(loop,y),ha="center", color = 'g', fontsize=5)
+            plt.annotate(formatting.format(row['amount']),(loop,y),ha="center", color = 'g', fontsize=fontsize)
         else:
             y -= (pos_offset*4)
-            plt.annotate(formatting.format(row['amount']),(loop,y),ha="center", color = 'r', fontsize=5)
+            plt.annotate(formatting.format(row['amount']),(loop,y),ha="center", color = 'r', fontsize=fontsize)
         loop+=1
 
     #Scale up the y axis so there is room for the labels
@@ -172,7 +160,7 @@ def waterfall_plot(
     
     #add zero line and title
     plt.axhline(0, color='black', linewidth = 0.6, linestyle="dashed")
-    plt.title(title)
+    plt.title(Title)
     plt.tight_layout()
 
     return fig, ax

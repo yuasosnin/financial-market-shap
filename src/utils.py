@@ -4,7 +4,6 @@ import functools
 
 import pandas as pd
 import numpy as np
-from tqdm.notebook import tqdm
 from sklearn.metrics import mean_squared_error as mse
 
 import torch
@@ -12,6 +11,19 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.utils.data import Dataset, Subset
 import pytorch_lightning as pl
+from captum.attr import GradientShap
+
+
+groupdict = dict(
+    indexes = ['IMOEX', 'RTSI'],
+    commodities = ['GC', 'NG', 'BZ'],
+    shares = ['GAZP', 'SBER', 'LKOH', 'GMKN', 'NVTK', 'MGNT', 'ROSN', 'TATN', 'MTSS', 'SNGS'],
+    sectors = ['MOEXOG', 'MOEXEU', 'MOEXTL', 'MOEXMM', 'MOEXFN', 'MOEXCN', 'MOEXCH'],
+    foreign = ['UKX', 'INX', 'NDX'],
+    futures = ['MIX'],
+    bonds = ['1W', '1M', '6M', '1Y', '3Y', '5Y', '10Y', '20Y'],
+    currencies = ['USD', 'EUR']
+)
 
 
 def multi_merge(*args, on=None, how='outer'):
@@ -72,7 +84,7 @@ def read_model_logs(model_name, split='val'):
     n_splits = max([int(f.split('_')[-1]) for f in os.listdir(f'logs/model_{model_name}')])+1
     n_versions = max([int(f.split('_')[-1]) for f in os.listdir(f'logs/model_{model_name}/period_0')])+1
 
-    for p in tqdm(range(n_splits)):
+    for p in range(n_splits):
         for v in range(n_versions):
             y_true, y_pred = pd.read_csv(f'logs/model_{model_name}/period_{p}/version_{v}/results.csv').values.T
             errors_table['period'].append(p)
@@ -94,6 +106,16 @@ def res_table(logs_table, model_name='model', metric='mse'):
     ].T.rename({f'test_zero_{metric}': 'naive_zero', f'test_{metric}': model_name})
 
 
+def attribute(x, model, baseline=None, method=GradientShap):
+    x = torch.clone(x)
+    x.requires_grad_()
+    if baseline is None:
+        baseline = torch.zeros_like(x)
+    attributor = method(model)
+    attr = attributor.attribute(x, baseline)
+    return attr.detach()
+
+
 class PrintMetricsCallback(pl.callbacks.Callback):
     def __init__(self, metrics=None):
         self.epoch = 0
@@ -108,3 +130,12 @@ class PrintMetricsCallback(pl.callbacks.Callback):
                 print(f'{metric}:', metrics_dict[metric].item())
         print('-'*80)
         self.epoch += 1
+
+
+def _groupper(x):
+    import string
+    var = x.split('_')[-1]
+    if var[0] in string.digits:
+        return 'bonds'
+    else:
+        return var

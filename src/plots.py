@@ -4,11 +4,16 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 
-from .waterfall_chart import waterfall_plot
+from .waterfall_chart import plot as waterfall
 
 
-def plot_preds(y_pred, y_true, splits=None):
-    fig = plt.figure(figsize=(24,6))
+def plot_preds(y_pred, y_true, splits=None, figsize=None):
+    if figsize is None:
+        figsize = (
+            plt.rcParams['figure.figsize'][0], 
+            plt.rcParams['figure.figsize'][0]/4
+        )
+    fig = plt.figure(figsize=figsize)
     plt.plot(y_true)
     plt.plot(y_pred)
     plt.legend(('True', 'Pred'))
@@ -17,10 +22,16 @@ def plot_preds(y_pred, y_true, splits=None):
             plt.axvline(x=split, color='r', linestyle='--')
     return fig
 
-def plot_cumsum(y_pred, y_true):
+
+def plot_cumsum(y_pred, y_true, figsize=None):
+    if figsize is None:
+        figsize = (
+            plt.rcParams['figure.figsize'][0], 
+            plt.rcParams['figure.figsize'][0]/2
+        )
     cumsum = np.cumsum((y_true - y_pred)**2)
     cumsum_zero = np.cumsum((y_true)**2)
-    fig = plt.figure()
+    fig = plt.figure(figsize=figsize)
     plt.plot(cumsum_zero)
     plt.plot(cumsum)
     plt.title('Squared Error Cumulative Sum')
@@ -54,6 +65,7 @@ def plot_loss(train_loss, valid_loss, same_axis=True, **kwargs):
         plt.plot(valid_loss, color='C1')
         return None
 
+
 def plot_result_box(table, figsize=(15,5), split='val', **kwargs):
     zero_mse = table[f'{split}_zero_mse'].unique()
     a = table.pivot(index='period', columns='version')[f'{split}_mse'].values
@@ -62,6 +74,7 @@ def plot_result_box(table, figsize=(15,5), split='val', **kwargs):
     plt.plot(range(1,a.shape[0]+1), zero_mse, 'o-', linewidth=2)
     plt.tight_layout()
     return fig
+
 
 def plot_result_min(table, figsize=(15,5), split='val', **kwargs):
     zero_mse = table[f'{split}_zero_mse'].unique()
