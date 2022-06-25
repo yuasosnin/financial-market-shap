@@ -1,3 +1,5 @@
+from typing import *
+
 import os
 import copy
 import functools
@@ -139,3 +141,19 @@ def _groupper(x):
         return 'bonds'
     else:
         return var
+
+
+def grouped_dailty_shap_df(attr_shap_total, input_total, feature_names):
+    df_shap = pd.DataFrame(attr_shap_total.mean(1)).T
+    df_shap.index = feature_names
+    df_shap = df_shap.groupby(_groupper).sum().T.reset_index()
+
+    df_input = pd.DataFrame(input_total.mean(1)).T
+    df_input.index = feature_names
+    df_input = df_input.groupby(_groupper).sum().T.reset_index()
+
+    df = pd.merge(
+        pd.melt(df_shap, 'index', var_name='feature', value_name='shap'), 
+        pd.melt(df_input, 'index', var_name='feature', value_name='input')
+    )
+    return df

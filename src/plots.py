@@ -7,81 +7,118 @@ import matplotlib.pyplot as plt
 from .waterfall_chart import plot as waterfall
 
 
-def plot_preds(y_pred, y_true, splits=None, figsize=None):
-    if figsize is None:
-        figsize = (
-            plt.rcParams['figure.figsize'][0], 
-            plt.rcParams['figure.figsize'][0]/4
-        )
-    fig = plt.figure(figsize=figsize)
-    plt.plot(y_true)
-    plt.plot(y_pred)
-    plt.legend(('True', 'Pred'))
+def plot_predictions(
+    y_pred, y_true, 
+    splits=None, 
+    ax=None, 
+    legend=True, 
+    plot_kwargs={}, 
+    axvline_kwargs={}
+):
+    if ax is None:
+        ax = plt.gca()
+    
+    ax.plot(y_true, **plot_kwargs)
+    ax.plot(y_pred, **plot_kwargs)
+    if legend:
+        ax.legend(('True', 'Pred'))
     if splits is not None:
         for split in splits:
-            plt.axvline(x=split, color='r', linestyle='--')
-    return fig
+            ax.axvline(x=split, **(dict(color='r', linestyle='--') | axvline_kwargs))
+    return ax
 
 
-def plot_cumsum(y_pred, y_true, figsize=None):
-    if figsize is None:
-        figsize = (
-            plt.rcParams['figure.figsize'][0], 
-            plt.rcParams['figure.figsize'][0]/2
-        )
+def plot_cumsum(
+    y_pred, y_true, 
+    ax=None, 
+    legend=True, 
+    colors=('C0', 'C1'), 
+    plot_kwargs={}
+):
+    if ax is None:
+        ax = plt.gca()
+        
     cumsum = np.cumsum((y_true - y_pred)**2)
     cumsum_zero = np.cumsum((y_true)**2)
-    fig = plt.figure(figsize=figsize)
-    plt.plot(cumsum_zero)
-    plt.plot(cumsum)
-    plt.title('Squared Error Cumulative Sum')
-    plt.legend(('Zero', 'Model'))
-    return fig
+    ax.plot(cumsum_zero, **(dict(color=colors[0], label='Zero') | plot_kwargs))
+    ax.plot(cumsum, **(dict(color=colors[1], label='Model') | plot_kwargs))
+    if legend:
+        ax.legend()
+    return ax
 
 
-def plot_loss(train_loss, valid_loss, same_axis=True, **kwargs):
-    if same_axis == True:
-        fig, ax1 = plt.subplots(**kwargs)
-        ax1.set_xlabel('Epochs')
-        ax1.set_ylabel('Train loss')
-        plot1 = ax1.plot(train_loss, label='Train')
-        # ax1.legend()
+def plot_loss(
+    train_loss, valid_loss, 
+    ax=None,
+    same_axis=True,
+    legend=True,
+    colors=('C0', 'C1'), 
+    plot_kwargs={}
+):
+    if ax is None:
+        ax = plt.gca()
+    
+    if same_axis:
+        ax2 = ax.twinx()
 
-        ax2 = ax1.twinx()
+        ax.plot(train_loss, **(dict(color=colors[0], label='Train') | plot_kwargs))
+        ax.set_xlabel('Epochs')
+        ax.set_ylabel('Train loss')
+
+        ax2.plot(valid_loss, **(dict(color=colors[1], label='Valid') | plot_kwargs))
         ax2.set_ylabel('Valid loss')
-        plot2 = ax2.plot(valid_loss, label='Valid', color='C1')
-        # ax2.legend()
 
-        # added these three lines
-        plots = plot1+plot2
-        labs = [l.get_label() for l in plots]
-        ax1.legend(plots, labs, loc='upper right')
-        # plt.title('Loss')
-
-        fig.tight_layout()
-        return fig
+        line, label = ax.get_legend_handles_labels()
+        line2, label2 = ax2.get_legend_handles_labels()
+        if legend:
+            ax.legend(line+line2, label+label2, loc=2)
     else:
-        plt.plot(train_loss)
-        plt.plot(valid_loss, color='C1')
-        return None
+        ax.plot(train_loss, **(dict(color=colors[0], label='Train') | plot_kwargs))
+        ax.plot(valid_loss, **(dict(color=colors[1], label='Valid') | plot_kwargs))
+        if legend:
+            ax.legend(loc=2)
+    return ax
 
 
-def plot_result_box(table, figsize=(15,5), split='val', **kwargs):
+def plot_result_box(
+    table, 
+    ax=None, 
+    split='val', 
+    box_kwargs={}, 
+    plot_kwargs={}
+):
     zero_mse = table[f'{split}_zero_mse'].unique()
     a = table.pivot(index='period', columns='version')[f'{split}_mse'].values
-    fig = plt.figure(figsize=figsize, **kwargs)
-    plt.boxplot(a.T);
-    plt.plot(range(1,a.shape[0]+1), zero_mse, 'o-', linewidth=2)
-    plt.tight_layout()
-    return fig
+    
+    if ax is None:
+        ax = plt.gca()
+    
+    ax.boxplot(a.T, **box_kwargs);
+    ax.plot(range(1,a.shape[0]+1), zero_mse, **(dict(ls='o-', linewidth=2) | plot_kwargs))
+    return ax
 
 
-def plot_result_min(table, figsize=(15,5), split='val', **kwargs):
+def plot_result_min(
+    table, 
+    ax=None, 
+    split='val', 
+    plot_kwargs={}
+):
     zero_mse = table[f'{split}_zero_mse'].unique()
     idx_min = table.groupby('period')[f'val_mse'].idxmin()
     min_table = table.iloc[idx_min]
-    fig = plt.figure(figsize=figsize, **kwargs)
-    plt.plot(range(1,min_table.shape[0]+1), min_table[f'{split}_zero_mse'], 'o-', linewidth=2)
-    plt.plot(range(1,min_table.shape[0]+1), min_table[f'{split}_mse'], 'o-', linewidth=2)
-    plt.tight_layout()
-    return fig
+    
+    if ax is None:
+        ax = plt.gca()
+    
+    ax.plot(
+        range(1, min_table.shape[0]+1), 
+        min_table[f'{split}_zero_mse'], 
+        **(dict(ls='o-', linewidth=2) | plot_kwargs)
+    )
+    ax.plot(
+        range(1, min_table.shape[0]+1), 
+        min_table[f'{split}_mse'], 
+        **(dict(ls='o-', linewidth=2) | plot_kwargs)
+    )
+    return ax
