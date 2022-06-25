@@ -2,7 +2,7 @@
 
 import numpy as np
 import pandas as pd
-import matplotlib.pyplot as pls
+import matplotlib.pyplot as plt
 
 def plot(
     index, 

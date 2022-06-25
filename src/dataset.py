@@ -92,20 +92,23 @@ class TickerDataset(Dataset):
 
 
 class MyDataModule(pl.LightningDataModule):
-    def __init__(self, data, target, seq_length=5, batch_size=32, num_workers=1, splits=[0.8, 0.1, 0.1], norm_stats=None):
+    def __init__(self, data, target, seq_length=5, batch_size=32, num_workers=1, split_lengths=None, norm_stats=None):
         super().__init__()
         self.data = data
         self.target = target
         self.seq_length = seq_length
         self.batch_size = batch_size
         self.num_workers = num_workers
-        self.splits = splits
+        if split_lengths is None:
+            self.split_lengths = [len(data)-seq_length-2*5, 5, 5]
+        else:
+            self.split_lengths = split_lengths
         self.norm_stats = norm_stats
 
     def setup(self, stage=None):
-        self.norm_stats = calculate_norm_stats(self.data, train_size=self.splits[0], exclude=['time','dayofweek'], robust=True)
+        self.norm_stats = calculate_norm_stats(self.data, train_size=self.split_lengths[0], exclude=['time','dayofweek'], robust=True)
         self.full_dataset = TickerDataset(self.data, y=self.target, seq_length=self.seq_length, norm_stats=self.norm_stats)
-        self.train_dataset, self.val_dataset, self.test_dataset = sequential_split(self.full_dataset, splits=self.splits)
+        self.train_dataset, self.val_dataset, self.test_dataset = sequential_split(self.full_dataset, lengths=self.split_lengths)
         
 
     def train_dataloader(self):
