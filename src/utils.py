@@ -17,7 +17,7 @@ from captum.attr import GradientShap
 groupdict = dict(
     indexes = ['IMOEX', 'RTSI'],
     commodities = ['GC', 'NG', 'BZ'],
-    shares = ['GAZP', 'SBER', 'LKOH', 'GMKN', 'NVTK', 'MGNT', 'ROSN', 'TATN', 'MTSS', 'SNGS'],
+    shares = ['GAZP', 'SBER', 'LKOH', 'GMKN', 'NVTK', 'MGNT', 'ROSN', 'TATN', 'MTSS'],
     sectors = ['MOEXOG', 'MOEXEU', 'MOEXTL', 'MOEXMM', 'MOEXFN', 'MOEXCN', 'MOEXCH'],
     foreign = ['UKX', 'INX', 'NDX'],
     futures = ['MIX'],

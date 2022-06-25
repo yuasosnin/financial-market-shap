@@ -111,10 +111,9 @@ def logreturn(s):
 
 indexes = ['IMOEX', 'RTSI']
 commodities = ['GC', 'NG', 'BZ']
-shares = ['GAZP', 'SBER', 'LKOH', 'GMKN', 'NVTK', 'MGNT', 'ROSN', 'TATN', 'MTSS', 'SNGS']
+shares = ['GAZP', 'SBER', 'LKOH', 'GMKN', 'NVTK', 'MGNT', 'ROSN', 'TATN', 'MTSS']
 sectors = ['MOEXOG', 'MOEXEU', 'MOEXTL', 'MOEXMM', 'MOEXFN', 'MOEXCN', 'MOEXCH']
 foreign = ['UKX', 'INX', 'NDX']
-futures = ['MIX']
 bonds = ['1W', '1M', '6M', '1Y', '3Y', '5Y', '10Y', '20Y']
 
 
@@ -136,10 +135,6 @@ if __name__ == '__main__':
     data_shares = FinamDataLoader().load_multiple(names=shares, market=Market.SHARES, timeframe=Timeframe.MINUTES5)
     make_daily(data_shares).to_csv('data/shares_day.csv', index=False)
     print('shares loaded')
-
-    data_futures = FinamDataLoader().load_multiple(names=futures, market=Market.FUTURES, timeframe=Timeframe.MINUTES5)
-    make_daily(data_futures).to_csv('data/futures_day.csv', index=False)
-    print('futures loaded')
 
     data_sectors = FinamDataLoader().load_multiple(names=sectors, market=Market.INDEXES, timeframe=Timeframe.DAILY)
     data_sectors.to_csv('data/sectors_day.csv', index=False)
