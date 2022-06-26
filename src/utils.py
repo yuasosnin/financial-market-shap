@@ -25,7 +25,6 @@ groupdict = dict(
     shares = ['GAZP', 'SBER', 'LKOH', 'GMKN', 'NVTK', 'MGNT', 'ROSN', 'TATN', 'MTSS'],
     sectors = ['MOEXOG', 'MOEXEU', 'MOEXTL', 'MOEXMM', 'MOEXFN', 'MOEXCN', 'MOEXCH'],
     foreign = ['UKX', 'INX', 'NDX'],
-    futures = ['MIX'],
     bonds = ['1W', '1M', '6M', '1Y', '3Y', '5Y', '10Y', '20Y'],
     currencies = ['USD', 'EUR']
 )
@@ -174,29 +173,3 @@ class PrintMetricsCallback(pl.callbacks.Callback):
                 print(f'{metric}:', metrics_dict[metric].item())
         print('-'*80)
         self.epoch += 1
-
-
-def _groupper(x):
-    '''Get which variable a column is of.'''
-    var = x.split('_')[-1]
-    if var[0] in string.digits:
-        return 'bonds'
-    else:
-        return var
-
-
-def grouped_dailty_shap_df(attr_shap_total: torch.Tensor, input_total: torch.Tensor, feature_names: Sequence[str]) -> pd.DataFrame:
-    '''A helper function, create attribuion data frame of needed format.'''
-    df_shap = pd.DataFrame(attr_shap_total.mean(1)).T
-    df_shap.index = feature_names
-    df_shap = df_shap.groupby(_groupper).sum().T.reset_index()
-
-    df_input = pd.DataFrame(input_total.mean(1)).T
-    df_input.index = feature_names
-    df_input = df_input.groupby(_groupper).sum().T.reset_index()
-
-    df = pd.merge(
-        pd.melt(df_shap, 'index', var_name='feature', value_name='shap'), 
-        pd.melt(df_input, 'index', var_name='feature', value_name='input')
-    )
-    return df

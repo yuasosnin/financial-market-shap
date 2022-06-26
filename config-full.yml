@@ -1,0 +1,47 @@
+seq_length: 10
+test_length: 5
+steps: 1
+task: regression
+output_size: 1
+input_size: 101
+batch_size: 64
+target: return_imoex
+idx: 
+    - imoex
+    - rtsi
+    # commodities
+    - gc
+    - ng
+    - bz
+    # foreign
+    - ukx
+    - inx
+    - ndx
+    # currencies
+    - usd
+    - eur
+    # shares
+    - gazp
+    - sber
+    - lkoh
+    - gmkn
+    - nvtk
+    - mgnt
+    - rosn
+    - tatn
+    - mtss
+    # sectors
+    - moexog
+    - moexeu
+    - moextl
+    - moexmm
+    - moexfn
+    - moexcn
+    - moexch
+var: 
+    - return
+    - volatility
+    - highlow
+    - volume
+add: 
+    - yield
