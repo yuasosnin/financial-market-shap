@@ -87,7 +87,7 @@ def take_vars(data: pd.DataFrame, idx: Sequence[str], var: Sequence[str],
     take = [f'{v}_{i}' for i in idx for v in var]
     take = [c for c in data.columns if c in take]
     if add is not None:
-        take = take + [c for c in data.columns if c.split('_')[0] in add]
+        take += [c for c in data.columns if c.split('_')[0] in add]
     return data[take].copy()
 
 
@@ -152,10 +152,22 @@ def read_model_logs(
         'val_zero_mse': [],
         'test_mse': [],
         'test_zero_mse': []}
-    n_splits = max([int(f.split('_')[-1])
-                   for f in os.listdir(f'logs/model_{model_name}')]) + 1
-    n_versions = max([int(f.split('_')[-1])
-                     for f in os.listdir(f'logs/model_{model_name}/period_0')]) + 1
+    n_splits = (
+        max(
+            int(f.split('_')[-1])
+            for f in os.listdir(f'logs/model_{model_name}')
+        )
+        + 1
+    )
+
+    n_versions = (
+        max(
+            int(f.split('_')[-1])
+            for f in os.listdir(f'logs/model_{model_name}/period_0')
+        )
+        + 1
+    )
+
 
     for p in range(n_splits):
         for v in range(n_versions):
@@ -171,8 +183,7 @@ def read_model_logs(
                 mse(y_true[-5:], y_pred[-5:]))
             errors_table['test_zero_mse'].append(
                 mse(y_true[-5:], np.zeros_like(y_pred[-5:])))
-    table = pd.DataFrame(errors_table)
-    return table
+    return pd.DataFrame(errors_table)
 
 
 def res_table(logs_table: pd.DataFrame,
@@ -181,9 +192,9 @@ def res_table(logs_table: pd.DataFrame,
     zero_mse = logs_table['test_zero_mse'].unique()
     idx_min = logs_table.groupby('period')['val_mse'].idxmin()
     min_table = logs_table.iloc[idx_min]
-    return min_table.reset_index()[
-        [f'test_zero_mse', f'test_mse']
-    ].T.rename({f'test_zero_mse': 'naive_zero', f'test_mse': model_name})
+    return min_table.reset_index()[['test_zero_mse', 'test_mse']].T.rename(
+        {'test_zero_mse': 'naive_zero', 'test_mse': model_name}
+    )
 
 
 class PrintMetricsCallback(pl.callbacks.Callback):

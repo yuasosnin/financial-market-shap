@@ -118,7 +118,7 @@ def plot_result_min(
     plot_kwargs={}
 ):
     zero_mse = table[f'{split}_zero_mse'].unique()
-    idx_min = table.groupby('period')[f'val_mse'].idxmin()
+    idx_min = table.groupby('period')['val_mse'].idxmin()
     min_table = table.iloc[idx_min]
 
     if ax is None:
@@ -155,10 +155,7 @@ class AttributionPlotter():
     def _groupper(x: str) -> str:
         '''Get which variable a column is of.'''
         var = x.split('_')[-1]
-        if var[0] in string.digits:
-            return 'bonds'
-        else:
-            return var
+        return 'bonds' if var[0] in string.digits else var
 
     @property
     def _reverse_groupdict(self) -> dict:
@@ -258,11 +255,10 @@ class AttributionPlotter():
         df_input.index = self.feature_names
         df_input = df_input.groupby(self._groupper).sum().T.reset_index()
 
-        df = pd.merge(
+        return pd.merge(
             pd.melt(df_shap, 'index', var_name='feature', value_name='shap'),
-            pd.melt(df_input, 'index', var_name='feature', value_name='input')
+            pd.melt(df_input, 'index', var_name='feature', value_name='input'),
         )
-        return df
 
     def plot_global_scatter(
         self,

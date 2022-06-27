@@ -80,9 +80,9 @@ class TickerDataset(Dataset):
             self.data = torch.tensor(df_x.values).float()
 
         if isinstance(y, list):
-            if all([isinstance(i, int) for i in y]):
+            if all(isinstance(i, int) for i in y):
                 self.y_idx = y
-            elif all([isinstance(i, str) for i in y]):
+            elif all(isinstance(i, str) for i in y):
                 self.y_idx = [list(df_x.columns).index(i) for i in y]
         elif isinstance(y, int):
             self.y_idx = y

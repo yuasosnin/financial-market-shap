@@ -161,11 +161,7 @@ class EncoderDecoderLSTM(nn.Module):
 
     def init_weights(self):
         for layer in self.modules():
-            if isinstance(layer, nn.Conv1d):
-                nn.init.kaiming_normal_(layer.weight.data)
-                if layer.bias is not None:
-                    nn.init.constant_(layer.bias.data, 0.0)
-            elif isinstance(layer, nn.Linear):
+            if isinstance(layer, (nn.Conv1d, nn.Linear)):
                 nn.init.kaiming_normal_(layer.weight.data)
                 if layer.bias is not None:
                     nn.init.constant_(layer.bias.data, 0.0)
@@ -330,11 +326,7 @@ class CNN(nn.Module):
 
     def init_weights(self):
         for layer in self.modules():
-            if isinstance(layer, nn.Conv1d):
-                nn.init.kaiming_normal_(layer.weight.data)
-                if layer.bias is not None:
-                    nn.init.constant_(layer.bias.data, 0.0)
-            elif isinstance(layer, nn.Linear):
+            if isinstance(layer, (nn.Conv1d, nn.Linear)):
                 nn.init.kaiming_normal_(layer.weight.data)
                 if layer.bias is not None:
                     nn.init.constant_(layer.bias.data, 0.0)
