@@ -45,19 +45,19 @@ class FinamDataLoader():
             start_date = datetime.date(2017,1,1)
         if end_date is None:
             end_date = datetime.date(2020,1,1)
-            
+
         if market == Market.CURRENCIES:
             idx = self.exporter.lookup(name=name, market=market).index[0]
         else:
             idx = self.exporter.lookup(code=name, market=market).index[0]
-        
+
         data = self.exporter.download(
             idx, 
             market=market,
             start_date=start_date,
             end_date=end_date,
             timeframe=timeframe)
-        
+
         data = data.reset_index(drop=True)
         data.columns = map(lambda x: x.replace('<', '').replace('>', '').lower(), data.columns)
         data = data.rename({'vol': 'volume'}, axis=1)
@@ -67,7 +67,12 @@ class FinamDataLoader():
         data['return'] = logreturn(data['close'])
         data['highlow'] = (data['high'] - data['low']) / data['low']
         data['volume'] = np.log(data['volume'] + 1)
-        data.columns = [column+('_'+name.lower())*bool(column not in ['date_time', 'date', 'time']) for column in data.columns]
+        data.columns = [
+            column
+            + ('_' + name.lower()) * (column not in ['date_time', 'date', 'time'])
+            for column in data.columns
+        ]
+
         return data
     
     def load_multiple(self, names, market=Market.SHARES, timeframe=Timeframe.DAILY, start_date=None, end_date=None):
@@ -85,8 +90,8 @@ def make_daily(data):
 
     groupdict = op
     for i in (cl, hi, lo, vo):
-        groupdict.update(i)
-    
+        groupdict |= i
+
     data_day = data.groupby(data.date.dt.date).aggregate(groupdict)
     for i in idx:
         data_day[f'return_{i}'] = logreturn(data_day[f'close_{i}'])
@@ -94,7 +99,7 @@ def make_daily(data):
         data_day[f'highlow_{i}'] = (data_day[f'high_{i}'] - data_day[f'low_{i}']) / data_day[f'low_{i}']
         data_day[f'volume_{i}'] = np.log(data_day[f'volume_{i}'] + 1)
     data_day.index = pd.DatetimeIndex(data_day.index)
-    
+
     return data_day.dropna().reset_index()
 
 def add_columns_suffix(df, name):
@@ -151,7 +156,7 @@ if __name__ == '__main__':
         curr_list.append(data_curr)
     multi_merge(curr_list, on='date').sort_values('date').to_csv('data/currencies_day.csv', index=False)
     print('currencies loaded')
-    
+
     bonds_list = []
     for i in bonds:
         data_bond = investpy.bonds.get_bond_historical_data(
