@@ -146,8 +146,8 @@ def plot(
             ax.annotate(
                 formatting.format(row['amount']), 
                 (loop, y), 
-                ha='center', c
-                olor=green_color, 
+                ha='center',
+                color=green_color, 
                 fontsize=fontsize)
         else:
             y -= (pos_offset * 4)
