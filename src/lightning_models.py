@@ -14,26 +14,26 @@ class DefaultLightningModule(pl.LightningModule):
     def forward(self, x, y):
         x = torch.cat((x, y), dim=2)
         return self.model.forward(x)
-    
+
     def training_step(self, batch, batch_idx):
         x, y, target = batch
         output = self.forward(x, y)
         loss = self.criterion(output, target)
         self.log('train_loss', loss.item(), on_step=True, on_epoch=True)
         return loss
-    
+
     def validation_step(self, batch, batch_idx):
-        x, y, target  = batch
+        x, y, target = batch
         output = self.forward(x, y)
         loss = self.criterion(output, target)
         self.log('valid_loss', loss.item(), on_step=True, on_epoch=True)
         return loss
-        
+
     def predict_step(self, batch, batch_idx):
-        x, y, target  = batch
+        x, y, target = batch
         output = self.forward(x, y)
         return target, output
-    
+
     def configure_optimizers(self):
         if self.hparams.optimizer == 'Ranger':
             optimizer = getattr(
@@ -43,8 +43,8 @@ class DefaultLightningModule(pl.LightningModule):
             optimizer = getattr(
                 torch.optim, self.hparams.optimizer
             )(self.model.parameters(), lr=self.hparams.lr, weight_decay=self.hparams.wd)
-            
-        if self.hparams.scheduler in ('CosineAnnealingLR', 'CosineAnnealingWarmRestarts'):
+
+        if self.hparams.scheduler in {'CosineAnnealingLR', 'CosineAnnealingWarmRestarts'}:
             scheduler = getattr(
                 torch.optim.lr_scheduler, self.hparams.scheduler
             )(optimizer, self.hparams.T_max)
@@ -55,7 +55,6 @@ class DefaultLightningModule(pl.LightningModule):
         return [optimizer], [scheduler]
 
 
-
 class LitVanillaLSTM(DefaultLightningModule):
     def __init__(self, model_params, **hparams):
         super().__init__()
@@ -63,7 +62,8 @@ class LitVanillaLSTM(DefaultLightningModule):
         self.hparams['model'] = self.model.__class__.__name__
         self.save_hyperparameters()
         self.criterion = getattr(torch.nn, self.hparams.loss)()
-    
+
+
 class LitCNN(DefaultLightningModule):
     def __init__(self, model_params, **hparams):
         super().__init__()
@@ -71,7 +71,8 @@ class LitCNN(DefaultLightningModule):
         self.hparams['model'] = self.model.__class__.__name__
         self.save_hyperparameters()
         self.criterion = getattr(torch.nn, self.hparams.loss)()
-    
+
+
 class LitCNNLSTM(DefaultLightningModule):
     def __init__(self, model_params, **hparams):
         super().__init__()

@@ -29,7 +29,8 @@ def plot_predictions(
         ax.legend(('True', 'Pred'))
     if splits is not None:
         for split in splits:
-            ax.axvline(x=split, **(dict(color='r', linestyle='--') | axvline_kwargs))
+            ax.axvline(x=split, 
+                       **(dict(color='r', linestyle='--') | axvline_kwargs))
     return ax
 
 
@@ -66,20 +67,24 @@ def plot_loss(
     if same_axis:
         ax2 = ax.twinx()
 
-        ax.plot(train_loss, **(dict(color=colors[0], label='Train') | plot_kwargs))
+        ax.plot(train_loss, 
+                **(dict(color=colors[0], label='Train') | plot_kwargs))
         ax.set_xlabel('Epochs')
         ax.set_ylabel('Train loss')
 
-        ax2.plot(valid_loss, **(dict(color=colors[1], label='Valid') | plot_kwargs))
+        ax2.plot(valid_loss, 
+                 **(dict(color=colors[1], label='Valid') | plot_kwargs))
         ax2.set_ylabel('Valid loss')
 
         line, label = ax.get_legend_handles_labels()
         line2, label2 = ax2.get_legend_handles_labels()
         if legend:
-            ax.legend(line+line2, label+label2, loc=2)
+            ax.legend(line + line2, label + label2, loc=2)
     else:
-        ax.plot(train_loss, **(dict(color=colors[0], label='Train') | plot_kwargs))
-        ax.plot(valid_loss, **(dict(color=colors[1], label='Valid') | plot_kwargs))
+        ax.plot(train_loss, 
+                **(dict(color=colors[0], label='Train') | plot_kwargs))
+        ax.plot(valid_loss, 
+                **(dict(color=colors[1], label='Valid') | plot_kwargs))
         if legend:
             ax.legend(loc=2)
     return ax
@@ -98,8 +103,9 @@ def plot_result_box(
     if ax is None:
         ax = plt.gca()
 
-    ax.boxplot(a.T, **box_kwargs);
-    ax.plot(range(1,a.shape[0]+1), zero_mse, **(dict(marker='o', linewidth=2) | plot_kwargs))
+    ax.boxplot(a.T, **box_kwargs)
+    ax.plot(range(1, a.shape[0] + 1), zero_mse, 
+            **(dict(marker='o', linewidth=2) | plot_kwargs))
     return ax
 
 
@@ -120,12 +126,12 @@ def plot_result_min(
 
     if plot_zero:
         ax.plot(
-            range(1, min_table.shape[0]+1),
+            range(1, min_table.shape[0] + 1),
             min_table[f'{split}_zero_mse'],
             **(dict(color=colors[0], marker='o', linewidth=2) | plot_kwargs)
         )
     ax.plot(
-        range(1, min_table.shape[0]+1),
+        range(1, min_table.shape[0] + 1),
         min_table[f'{split}_mse'],
         **(dict(color=colors[1], marker='o', linewidth=2) | plot_kwargs)
     )
@@ -158,7 +164,7 @@ class AttributionPlotter():
     def _reverse_groupdict(self) -> dict:
         '''A reverse of global groupdict dictionary.'''
         reverse_groupdict = {}
-        for k,v in groupdict.items():
+        for k, v in groupdict.items():
             for x in v:
                 reverse_groupdict[x.lower()] = k
         return reverse_groupdict
@@ -291,7 +297,7 @@ class AttributionPlotter():
             x='shap',
             hue='input',
             **(dict(
-                hue_norm=(-10,10),
+                hue_norm=(-10, 10),
                 palette='viridis',
                 marker='o',
                 linewidth=0,
@@ -321,7 +327,8 @@ class AttributionPlotter():
             'attr': torch.abs(self.attributions.sum(axis=1)).mean(axis=0)
         })
         toplot = df.groupby(
-            df['var'].apply(lambda x: self._reverse_groupdict[x.split('_')[-1]])
+            df['var'].apply(
+                lambda x: self._reverse_groupdict[x.split('_')[-1]])
         ).mean()
 
         if ax is None:
